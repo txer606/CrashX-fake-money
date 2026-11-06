@@ -281,7 +281,7 @@ function soloTick(){
  const othersAlive=Object.keys(room.players).some(id=>id!==uid&&!room.players[id].out);
  if(!othersAlive){soloFinish(true);return}
  if(r.phase==='bet'&&t>=r.until){
-  room.bets={};
+  room.bets=room.bets||{};
   for(const id in room.players){
    if(id===uid||room.players[id].out)continue;
    const p=room.players[id];
