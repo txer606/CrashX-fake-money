@@ -127,7 +127,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 </div>
 <div id="res" class="hide"></div>
 <div id="out" class="hide"><div class="card">
-<h2 style="color:var(--rd);font-family:Orbitron">YOU'RE OUT!</h2>
+<img class="install-icon" src="./icons/crashx.svg" alt="Crash X icon" style="width:84px;height:84px"><h2 style="color:var(--rd);font-family:Orbitron">YOU'RE OUT!</h2>
 <div class="mu">You lost all your money and are eliminated from this match. You can keep watching or leave.</div>
 <button id="spec" class="big" style="background:linear-gradient(135deg,#38bdf8,#4f46e5)">Spectate match</button>
 <button id="outlv">Leave match</button></div></div>
@@ -206,7 +206,7 @@ let off=0,code=null,room=null,wallet=20000,lock='',hostCp=null,unR=null,tab='bet
 let spec=false,outShown=false;
 onValue(ref(db,'.info/serverTimeOffset'),s=>off=s.val()||0);
 const now=()=>Date.now()+off, rp=()=>`rooms/${code}/`;
-const hasActiveBet=id=>{if(!room||!room.round||room.round.phase==='crash')return false;const b=(room.bets||{})[id];return !!(b&&Object.keys(b).length)};
+const hasActiveBet=id=>{if(!room)return false;const b=(room.bets||{})[id];return !!(b&&Object.keys(b).length)};
 onValue(ref(db,'users/'+uid+'/wallet'),s=>{const v=s.val();if(v==null||v<500){set(ref(db,'users/'+uid+'/wallet'),20000);return}wallet=v;E('wal').textContent=fmt(v)});
 
 /* ================= SOUND ENGINE ================= */
@@ -406,10 +406,13 @@ function adj(i,a){sfxTick();const el=E('amt'+i),v=+el.value||1;el.value=a==='min
 async function place(i){const amt=Math.floor(+E('amt'+i).value),au=parseFloat(E('auto'+i).value)||0;if(!(amt>=1)||room.round.phase!=='bet')return;
  if(((room.players||{})[uid]||{}).out){toast('You are eliminated — spectating only','#f87171');return}
  if(solo){if(myBal()<amt){toast('Not enough balance','#f87171');return}room.players[uid].bal=r2(myBal()-amt);room.bets[uid]=room.bets[uid]||{};room.bets[uid][KS[i]]={amt,co:null,auto:au>=1.01?au:0};sfxBet();onRoom();return}
+ const betRef=ref(db,rp()+`bets/${uid}/${KS[i]}`);
+ await set(betRef,{amt,co:null,auto:au>=1.01?au:0});
  const res=await runTransaction(ref(db,rp()+'players/'+uid+'/bal'),v=>(v>=amt)?r2(v-amt):undefined);
- if(res.committed){sfxBet();await set(ref(db,rp()+`bets/${uid}/${KS[i]}`),{amt,co:null,auto:au>=1.01?au:0})}}
+ if(res.committed)sfxBet();else await set(betRef,null)}
 async function cancel(i){const b=mine(i);if(!b||room.round.phase!=='bet')return;
- if(solo){delete room.bets[uid][KS[i]];room.players[uid].bal=r2(myBal()+b.amt);sfxCancel();onRoom();return}await set(ref(db,rp()+`bets/${uid}/${KS[i]}`),null);await runTransaction(ref(db,rp()+'players/'+uid+'/bal'),v=>r2((v||0)+b.amt));sfxCancel()}
+ if(solo){delete room.bets[uid][KS[i]];room.players[uid].bal=r2(myBal()+b.amt);sfxCancel();onRoom();return}
+ await runTransaction(ref(db,rp()+'players/'+uid+'/bal'),v=>r2((v||0)+b.amt));await set(ref(db,rp()+`bets/${uid}/${KS[i]}`),null);sfxCancel()}
 let lastCashKey={};
 function cash(i,val){const r=room.round,k=r.id+KS[i];if(sent[k])return;sent[k]=1;
  const co=val||Math.floor(mult(r)*100)/100,b=mine(i);
