@@ -1,0 +1,40 @@
+{
+  "id": "./v4.html",
+  "name": "Crash X",
+  "short_name": "Crash X",
+  "description": "Play Crash X, a multiplayer crash game with play money.",
+  "lang": "en",
+  "start_url": "./v4.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#04050b",
+  "theme_color": "#04050b",
+  "icons": [
+    {
+      "src": "./icons/crashx-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/crashx-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/crashx-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/crashx.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
