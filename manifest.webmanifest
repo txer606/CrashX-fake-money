@@ -4,7 +4,7 @@
   "short_name": "Crash X",
   "description": "Play Crash X, a multiplayer crash game with play money.",
   "lang": "en",
-  "start_url": "./v4.html",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
