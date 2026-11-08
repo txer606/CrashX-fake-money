@@ -145,6 +145,8 @@ import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase
 import {getDatabase,ref,get,set,update,onValue,runTransaction} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 const app=initializeApp({apiKey:"AIzaSyCvF2kAbf7O5CwQV4AxXn5GTlREdybwyNU",authDomain:"max-voice-adc1d.firebaseapp.com",databaseURL:"https://max-voice-adc1d-default-rtdb.europe-west1.firebasedatabase.app",projectId:"max-voice-adc1d",storageBucket:"max-voice-adc1d.firebasestorage.app",messagingSenderId:"668396496300",appId:"1:668396496300:web:f0f37b79b8f4e452fd8609"});
 const db=getDatabase(app);
+const MIN_CRASH=1.21;/* a round can never crash at 1.20x or lower */
+function genCp(edge,cap){const lo=1-edge/(MIN_CRASH*100),u=lo+Math.random()*(1-lo);return Math.min(cap,Math.max(MIN_CRASH,Math.floor(edge/(1-u))/100))}
 const E=id=>document.getElementById(id),KS=['a','b'],K=0.00008,BET_MS=7000,CRASH_MS=4000,MIN=1,BUST_BONUS=0.25;
 let installPrompt=null;
 const installPopup=E('install-popup'),installHint=E('install-hint');
@@ -207,7 +209,7 @@ let spec=false,outShown=false;
 onValue(ref(db,'.info/serverTimeOffset'),s=>off=s.val()||0);
 const now=()=>Date.now()+off, rp=()=>`rooms/${code}/`;
 const hasActiveBet=id=>{if(!room)return false;const b=(room.bets||{})[id];return !!(b&&Object.keys(b).length)};
-onValue(ref(db,'users/'+uid+'/wallet'),s=>{const v=s.val();if(v==null||v<500){set(ref(db,'users/'+uid+'/wallet'),20000);return}wallet=v;E('wal').textContent=fmt(v)});
+onValue(ref(db,'users/'+uid+'/wallet'),s=>{const v=s.val();if(v==null){set(ref(db,'users/'+uid+'/wallet'),20000);return}wallet=v;E('wal').textContent=fmt(v)});
 
 /* ================= SOUND ENGINE ================= */
 let AC=null;const ac=()=>AC||(AC=new (window.AudioContext||window.webkitAudioContext)());
@@ -269,7 +271,7 @@ function startSolo(){const d=DIFFS[soloDiff],n=gname(),ps={[uid]:{name:n,bal:200
  solo=true;code=null;sent={};lastRound=-1;lastCrashId=-1;lastEnd=false;spec=false;outShown=false;E('out').classList.add('hide');
  room={host:uid,status:'playing',duration:soloLen,endAt:now()+soloLen*60000,round:{id:1,phase:'bet',until:now()+BET_MS},bets:{},players:ps,hist:{}};
  soloTimer=setInterval(soloTick,100);onRoom()}
-function soloCrashPoint(){const d=DIFFS[soloDiff];return Math.min(d.cap,Math.max(1,Math.floor(d.edge/(1-Math.random()))/100))}
+function soloCrashPoint(){const d=DIFFS[soloDiff];return genCp(d.edge,d.cap)}
 function markOuts(){let ch=false;for(const id in room.players){const p=room.players[id];
  if(!p.out&&p.bal<MIN&&!hasActiveBet(id)){p.out=true;ch=true;if(id===uid)toast('You are out of money — eliminated!','#f87171');else toast(p.name+' is out of the game','#f87171')}}
  return ch}
@@ -375,8 +377,8 @@ const mult=r=>!r?1:r.phase==='fly'?Math.max(1,Math.exp(K*(now()-r.startAt))):r.p
 setInterval(()=>{const r=room&&room.round;if(!room||solo||room.host!==uid||room.status!=='playing'||!r)return;
  checkElim();if(!room||room.status!=='playing')return;
  const k=r.id+r.phase;
- if(r.phase==='bet'&&now()>=r.until&&lock!==k){lock=k;hostCp=Math.min(500,Math.max(1,Math.floor(97/(1-Math.random()))/100));update(ref(db,rp()+'round'),{phase:'fly',startAt:now()})}
- else if(r.phase==='fly'&&lock!==k){if(hostCp==null)hostCp=1;if(mult(r)>=hostCp){lock=k;crash(r)}}
+ if(r.phase==='bet'&&now()>=r.until&&lock!==k){lock=k;hostCp=genCp(97,500);update(ref(db,rp()+'round'),{phase:'fly',startAt:now()})}
+ else if(r.phase==='fly'&&lock!==k){if(hostCp==null)hostCp=MIN_CRASH;if(mult(r)>=hostCp){lock=k;crash(r)}}
  else if(r.phase==='crash'&&now()>=r.until&&lock!==k){lock=k;if(now()>=room.endAt)finish(false);else update(ref(db,rp()),{round:{id:r.id+1,phase:'bet',until:now()+BET_MS},bets:null})}
 },100);
 function checkElim(){const ps=room.players||{};const u={};let changed=false,alive=0,total=0;
